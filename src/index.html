@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"> <!-- 关键viewport设置 -->
+  <style>
+    /* 消除默认边距 */
+    * { margin: 0; padding: 0; }
+    
+    /* 全屏处理 */
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000; /* 与游戏背景色一致 */
+    }
+    
+    #game-container {
+      touch-action: none; /* 禁用浏览器触摸手势 */
+    }
+  </style>
+</head>
+<body>
+    <script src="../node_modules/phaser/dist/phaser.min.js"></script>
+    <script type="module" src="./game.js"></script>
+    <div id="game-container"></div>
+</body>
+</html>
