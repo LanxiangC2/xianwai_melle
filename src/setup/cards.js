@@ -92,7 +92,7 @@ function setupCardSystem() {
 
         // y 方向不能超过战场区域的一半, 并且在战场区域内
         if ((pointer.y > this.scale.height * 0.8 / 2) && (pointer.y < this.scale.height * 0.8)) {
-            this.spawnUnit(gameObject.data.get('type'), pointer.x, pointer.y);
+            this.spawnUnit('main-player', gameObject.data.get('type'), pointer.x, pointer.y);
         }
     });
 

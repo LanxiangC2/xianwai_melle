@@ -1,5 +1,3 @@
-
-
 export function watchBarrierAndUnitColide() {
     this.physics.collide(
         this.units,
@@ -64,21 +62,46 @@ function handleUnitCollision(unit1, unit2) {
 
 
 export function passingBarrier(unit) {
-
     const { collidedBarrier } = unit;
-    // collidedBarrier.x  是中心点位置
+    if (!collidedBarrier) return;
+
+    // 计算路障的边界
     const rightBoundry = collidedBarrier.x + collidedBarrier.width / 2;
     const leftBoundry = collidedBarrier.x - collidedBarrier.width / 2;
-    if (!collidedBarrier) return
-    // 根据单位与路障的相对位置确定绕过方向
-    if (unit.x < collidedBarrier.x && unit.x > (leftBoundry - unit.width)) {
-        // 单位在路障左侧，尝试向左移动
-        unit.setVelocity(-50, 0);
-    } else if (unit.x > collidedBarrier.x && unit.x < (rightBoundry + unit.width)) {
-        // 单位在路障右侧，尝试向左移动
-        unit.setVelocity(+50, 0);
+    
+    // 计算单位与路障的水平距离
+    const distanceToLeft = Math.abs(unit.x - leftBoundry);
+    const distanceToRight = Math.abs(unit.x - rightBoundry);
+    
+    // 如果单位在路障左侧
+    if (unit.x < collidedBarrier.x) {
+        // 如果距离左侧边界较近，向左移动
+        if (distanceToLeft < distanceToRight) {
+            unit.setVelocity(-50, 0);
+        } else {
+            // 否则向右移动
+            unit.setVelocity(50, 0);
+        }
     } 
+    // 如果单位在路障右侧
+    else if (unit.x > collidedBarrier.x) {
+        // 如果距离右侧边界较近，向右移动
+        if (distanceToRight < distanceToLeft) {
+            unit.setVelocity(50, 0);
+        } else {
+            // 否则向左移动
+            unit.setVelocity(-50, 0);
+        }
+    }
+    // 如果单位正好在路障中心
     else {
+        // 随机选择一个方向移动
+        unit.setVelocity(Math.random() > 0.5 ? 50 : -50, 0);
+    }
+
+    // 检查是否已经完全绕过路障
+    const isBeyondBarrier = unit.x < leftBoundry - unit.width || unit.x > rightBoundry + unit.width;
+    if (isBeyondBarrier) {
         unit.isBypassingBarrier = false;
     }
 }

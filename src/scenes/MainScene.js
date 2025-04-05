@@ -3,12 +3,14 @@ import { setupBattlefield, createBarriers } from '../setup/battlefield.js';
 import { setupCardSystem } from '../setup/cards.js';
 import { watchBarrierAndUnitColide, watchUnitAndUnitColide, passingBarrier } from '../collides/units.js'
 import { HealthBar } from '../components/health.js';
+import { AIPlayer } from '../ai/AIPlayer.js';
 import Phaser from 'phaser';
 
 export class MainScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MainScene' });
         this.units = null;    // 动态单位组
+        this.enemyUnits = null;    // 敌方单位组
         this.statics = null;    // 静态单位组
         this.barriers = null;    // 障碍物组
         this.cards = null;    // 卡牌组
@@ -18,6 +20,7 @@ export class MainScene extends Phaser.Scene {
         this.enemyTowerHealth = null;  // 敌方防御塔血量
         this.playerCurrentHealth = null; // 玩家血量文本
         this.enemyCurrentHealth = null;  // 敌方血量文本
+        this.aiPlayer = null; // AI 玩家实例
 
         // 新增适配相关属性
         this.safeZone = null;
@@ -46,54 +49,88 @@ export class MainScene extends Phaser.Scene {
         // setupScreenAdapter.call(this);
         
         this.units = this.physics.add.group(); // 初始化物理单位组
+        this.enemyUnits = this.physics.add.group(); // 初始化敌方单位组
         this.statics = this.physics.add.group(); // 初始化静态单位组
-        
         
         setupBattlefield.call(this);               // 初始化战场
         setupCardSystem.call(this);                // 初始化卡牌系统
         createBarriers.call(this);                 // 创建路障
         
+        // 初始化 AI 玩家
+        this.aiPlayer = new AIPlayer(this);
     }
 
     // ===== 生成单位 =====
-    spawnUnit(type, x, y) {
-        if (type === 'knight') {
-            const knight = this.physics.add.sprite(x, y, 'units', 0)
-               .setDataEnabled() // 关键修复：启用数据存储
-               .setScale(2)
-               .setData('damage', 50)
-               .setCircle(4, 4, 4)
-               .setCollideWorldBounds(true) // 防止移出屏幕外
+    spawnUnit(playerType = 'main-player', type, x, y) {
+        try {
+            const dynamicUnits = playerType === 'main-player' ? this.units : this.enemyUnits;
+            if (type === 'knight') {
+                const knight = this.physics.add.sprite(x, y, 'units', 0)
+                .setDataEnabled() // 关键修复：启用数据存储
+                .setScale(2)
+                .setData('damage', 50)
+                .setCircle(4, 4, 4)
+                .setCollideWorldBounds(true) // 防止移出屏幕外
 
-            // 将单位加入组
-            this.units.add(knight);
-            // 给单位创建血条
-            knight.healthBar = new HealthBar(this, knight, 200, false, {
-                offsetY: -20,
-                barWidth: 30,
-                barHeight: 6,
-                round: 2,
-                textSize: '10px'
-            });
+                // 将单位加入组
+                dynamicUnits.add(knight);
+                // 给单位创建血条
+                knight.healthBar = new HealthBar(this, knight, 200, false, {
+                    offsetY: -20,
+                    barWidth: 30,
+                    barHeight: 6,
+                    round: 2,
+                    textSize: '10px'
+                });
 
-            // 自动寻敌逻辑
-            knight.update = () => {
-                const enemy = this.findNearestEnemy(knight);
-                enemy && this.moveToTarget(knight, enemy);
-                knight.healthBar.followSprite(); // 让血条跟随精灵移动
-            };
+                // 自动寻敌逻辑
+                knight.update = () => {
+                    const enemy = this.findNearestEnemy(playerType, knight);
+                    enemy && this.moveToTarget(knight, enemy);
+                    knight.healthBar.followSprite(); // 让血条跟随精灵移动
+                };
+            }
+        } catch (error) {
+            console.log(error.message)
         }
+        
     }
 
-    // ===== 单位AI逻辑 =====
-    findNearestEnemy(unit) {
-        // 如果敌方塔已被摧毁，不再返回目标
-        if (!this.enemyTower || !this.enemyTower.gameObject.active) {
-            return null;
+    
+    /**
+     * 查找最近的敌方单位或防御塔。
+     *
+     * @param playerType 玩家类型，'main-player' 表示主玩家，'enemy-player' 表示敌方玩家。
+     * @param unit 当前单位的 Phaser 对象。
+     * @returns 返回最近的敌方单位或防御塔，如果没有找到则返回 null。
+     */
+    findNearestEnemy(playerType, unit) {
+        const tower = playerType === 'main-player' ? this.enemyTower : this.playerTower;
+        const units = playerType === 'main-player' ? this.enemyUnits : this.units;
+        
+        // 创建有效目标列表
+        const validTargets = [];
+        
+        // 1. 加入活跃的敌方防御塔（如果存在）
+        if (tower?.gameObject?.active) {
+            validTargets.push(tower.gameObject);
         }
-
-        // 否则优先攻击敌方塔
-        return this.enemyTower.gameObject;
+        
+        // 2. 加入所有活跃的敌方单位
+        units.getChildren().forEach(enemy => {
+            if (enemy?.active) {
+                validTargets.push(enemy);
+            }
+        });
+        
+        // 没有有效目标时返回null
+        if (validTargets.length === 0) return null;
+        
+        // 3. 统一比较所有目标
+        return validTargets.reduce((nearest, target) => {
+            const distance = Phaser.Math.Distance.Between(unit.x, unit.y, target.x, target.y);
+            return distance < nearest.distance ? { target, distance } : nearest;
+        }, { target: null, distance: Infinity }).target;
     }
     // 移动到目标位置
     moveToTarget(unit, target) {
@@ -121,7 +158,10 @@ export class MainScene extends Phaser.Scene {
         this.physics.moveToObject(unit, target, 50);
     }
 
-    // ===== 碰撞检测 =====
+    
+    /**
+     * 更新游戏状态
+     */
     update() {
         this.physics.collide(
             this.units,
@@ -142,6 +182,13 @@ export class MainScene extends Phaser.Scene {
 
         // 调用单位的 update 方法
         this.units.getChildren().forEach(unit => {
+            if (unit.update) {
+                unit.update();
+            }
+        });
+
+        // 调用敌方单位的 update 方法
+        this.enemyUnits.getChildren().forEach(unit => {
             if (unit.update) {
                 unit.update();
             }
