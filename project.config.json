@@ -1,0 +1,14 @@
+{
+  "miniprogramRoot": "dist/",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": true
+  },
+  "appid": "your-app-id",
+  "projectname": "my-melle",
+  "libVersion": "2.19.4",
+  "condition": {}
+} 

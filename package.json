@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:tt": "tt-cli build",
+    "build:wx": "wx-cli build"
   },
   "keywords": [],
   "author": "",
@@ -11,5 +15,10 @@
   "description": "",
   "dependencies": {
     "phaser": "^3.88.2"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
   }
 }

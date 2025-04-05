@@ -3,6 +3,7 @@ import { setupBattlefield, createBarriers } from '../setup/battlefield.js';
 import { setupCardSystem } from '../setup/cards.js';
 import { watchBarrierAndUnitColide, watchUnitAndUnitColide, passingBarrier } from '../collides/units.js'
 import { HealthBar } from '../components/health.js';
+import Phaser from 'phaser';
 
 export class MainScene extends Phaser.Scene {
     constructor() {
